@@ -35,6 +35,10 @@ class ShopController extends Controller
     // Halaman Dashboard (sebelumnya $products tidak pernah dikirim ke view)
     public function dashboard()
     {
+        if (auth()->user()?->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
         $products = Product::where('is_active', true)->latest()->take(8)->get();
 
         return view('dashboard', compact('products'));

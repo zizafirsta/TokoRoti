@@ -25,20 +25,37 @@ class OrderController extends Controller
         return view('admin.orders.show', compact('order'));
     }
 
-    // Update status transaksi secara manual
+    // Update status transaksi: harus berurutan, pembatalan wajib beralasan, setiap perubahan dicatat
     public function update(Request $request, Order $order)
     {
-        // Sebelumnya memakai "failed" yang TIDAK ada di enum database (error 500),
-        // dan status processing/ready/shipped/completed tidak bisa dipilih.
         $request->validate([
-            'status' => ['required', Rule::in(array_keys(Order::STATUS_LABELS))],
+            'status'        => ['required', Rule::in(array_keys(Order::STATUS_LABELS))],
+            // RQ-023: alasan wajib pada pembatalan
+            'cancel_reason' => ['nullable', 'required_if:status,cancelled', 'string', 'min:3', 'max:255'],
+        ], [
+            'status.required'           => 'Status wajib dipilih.',
+            'status.in'                 => 'Status tidak valid.',
+            'cancel_reason.required_if' => 'Alasan pembatalan wajib diisi.',
+            'cancel_reason.min'         => 'Alasan pembatalan minimal 3 karakter.',
         ]);
 
-        if ($order->status === 'cancelled' && $request->status !== 'cancelled') {
-            return redirect()->back()->with('error', 'Pesanan yang sudah dibatalkan tidak bisa diaktifkan kembali (stok sudah dikembalikan). Minta pelanggan membuat pesanan baru.');
+        // RQ-022: tolak perubahan yang tidak sesuai urutan
+        if (! $order->canTransitionTo($request->status)) {
+            $next = $order->nextStatus();
+            $hint = $next
+                ? 'Status berikutnya yang diizinkan: ' . Order::STATUS_LABELS[$next] . ' atau Dibatalkan.'
+                : 'Pesanan ini sudah berada di status akhir dan tidak bisa diubah lagi.';
+
+            return redirect()->back()->with(
+                'error',
+                'Perubahan status dari "' . Order::STATUS_LABELS[$order->status] . '" ke "' . Order::STATUS_LABELS[$request->status] . '" tidak sesuai urutan. ' . $hint
+            );
         }
 
-        $order->changeStatus($request->status, auth()->id());
+        $reason = $request->status === 'cancelled' ? $request->cancel_reason : null;
+
+        // RQ-024: changeStatus() mencatat setiap perubahan ke order_status_logs
+        $order->changeStatus($request->status, auth()->id(), $reason);
 
         return redirect()->back()->with('success', 'Status transaksi berhasil diperbarui!');
     }

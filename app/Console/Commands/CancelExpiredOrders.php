@@ -24,7 +24,7 @@ class CancelExpiredOrders extends Command
             ->get();
 
         foreach ($orders as $order) {
-            $order->changeStatus('cancelled');
+            $order->changeStatus('cancelled', null, 'Pesanan kedaluwarsa: belum dibayar melewati batas waktu.');
         }
 
         $this->info($orders->count() . ' pesanan kedaluwarsa dibatalkan.');

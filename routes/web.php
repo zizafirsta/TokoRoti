@@ -8,6 +8,10 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\StockController as AdminStockController;
+use App\Http\Controllers\Admin\PromoController as AdminPromoController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,8 +70,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // FS-001: dashboard admin (+ peringatan stok menipis, FS-005)
+    Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+    // FS-004: kelola produk
+    Route::patch('products/{product}/toggle-active', [AdminProductController::class, 'toggleActive'])->name('products.toggle-active');
     Route::resource('products', AdminProductController::class);
+
+    // FS-005: kelola stok
+    Route::get('stock', [AdminStockController::class, 'index'])->name('stock.index');
+    Route::post('stock/{product}', [AdminStockController::class, 'adjust'])->name('stock.adjust');
+
+    // FS-006: update status pesanan
     Route::resource('orders', AdminOrderController::class)->only(['index', 'show', 'update']);
+
+    // FS-007: kelola promo
+    Route::patch('promos/{promo}/toggle', [AdminPromoController::class, 'toggle'])->name('promos.toggle');
+    Route::resource('promos', AdminPromoController::class)->except(['show', 'destroy']);
+
+    // FS-008: laporan penjualan
+    Route::get('reports/sales', [AdminReportController::class, 'sales'])->name('reports.sales');
 });
 
 require __DIR__.'/auth.php';

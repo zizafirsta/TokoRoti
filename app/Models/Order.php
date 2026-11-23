@@ -16,13 +16,16 @@ class Order extends Model
     /** Semua status yang valid (sesuai enum di migration orders). */
     public const STATUS_LABELS = [
         'pending'    => 'Menunggu Pembayaran',
-        'paid'       => 'Lunas',
+        'paid'       => 'Dibayar',
         'processing' => 'Diproses',
         'ready'      => 'Siap Diambil',
         'shipped'    => 'Dikirim',
         'completed'  => 'Selesai',
         'cancelled'  => 'Dibatalkan',
     ];
+
+    /** Status yang dihitung sebagai penjualan pada laporan (RQ-029, RQ-030). */
+    public const SALES_STATUSES = ['paid', 'processing', 'ready', 'shipped', 'completed'];
 
     protected $fillable = [
         'user_id',
@@ -83,21 +86,54 @@ class Order extends Model
     }
 
     /**
+     * Status berikutnya dalam alur normal (RQ-021):
+     * pending -> paid -> processing -> ready (pickup) / shipped (delivery) -> completed.
+     * Mengembalikan null bila pesanan sudah berada di status akhir.
+     */
+    public function nextStatus(): ?string
+    {
+        return match ($this->status) {
+            'pending'    => 'paid',
+            'paid'       => 'processing',
+            'processing' => $this->fulfillment_type === 'delivery' ? 'shipped' : 'ready',
+            'ready', 'shipped' => 'completed',
+            default      => null, // completed / cancelled
+        };
+    }
+
+    /** Pesanan masih boleh dibatalkan selama belum selesai / belum dibatalkan. */
+    public function canBeCancelled(): bool
+    {
+        return ! in_array($this->status, ['completed', 'cancelled'], true);
+    }
+
+    /** Apakah perpindahan ke $status valid menurut urutan (RQ-022)? */
+    public function canTransitionTo(string $status): bool
+    {
+        if ($status === 'cancelled') {
+            return $this->canBeCancelled();
+        }
+
+        return $status === $this->nextStatus();
+    }
+
+    /**
      * Ubah status pesanan + catat ke order_status_logs.
      * Jika menjadi "cancelled", stok produk dikembalikan (hanya sekali).
      * Mengembalikan false bila status tidak berubah.
      */
-    public function changeStatus(string $status, ?int $changedBy = null): bool
+    public function changeStatus(string $status, ?int $changedBy = null, ?string $reason = null): bool
     {
         if ($this->status === $status) {
             return false;
         }
 
-        DB::transaction(function () use ($status, $changedBy) {
+        DB::transaction(function () use ($status, $changedBy, $reason) {
             $this->update(['status' => $status]);
             $this->statusLogs()->create([
                 'status'     => $status,
                 'changed_by' => $changedBy,
+                'reason'     => $reason,
             ]);
 
             $payment = $this->payment;
@@ -106,7 +142,7 @@ class Order extends Model
                 $this->restock();
                 $payment?->update(['status' => 'cancel']);
             } elseif (in_array($status, ['paid', 'completed'], true) && $payment && $payment->status === 'pending') {
-                // Pembayaran dianggap diterima saat admin menandai Lunas / Selesai
+                // Pembayaran dianggap diterima saat admin menandai Dibayar / Selesai
                 $payment->update(['status' => 'settlement', 'paid_at' => now()]);
             }
         });

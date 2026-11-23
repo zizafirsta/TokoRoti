@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Promo;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -18,6 +19,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@tokoroti.com'],
             [
                 'name'     => 'Admin Toko',
+                'phone'    => '081200000001',
                 'password' => Hash::make('password123'),
                 'role'     => 'admin',
             ]
@@ -27,6 +29,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'customer@gmail.com'],
             [
                 'name'     => 'Pelanggan Setia',
+                'phone'    => '081200000002',
                 'password' => Hash::make('password123'),
                 'role'     => 'customer',
             ]
@@ -59,11 +62,26 @@ class DatabaseSeeder extends Seeder
                     'category_id' => $categories[$category]->id,
                     'description' => $description,
                     'price'       => $price,
-                    'stock'       => 20,
+                    'stock'       => $name === 'Artisan Sourdough' ? 4 : 20, // contoh stok menipis di dashboard admin
+                    'min_stock'   => 5,
                     'image'       => $image,
                     'is_active'   => true,
                 ]
             );
         }
+
+        // 4. Promo contoh (FS-007)
+        Promo::firstOrCreate(
+            ['code' => 'HEMAT10'],
+            [
+                'type'         => 'percent',
+                'value'        => 10,
+                'min_purchase' => 50000,
+                'start_date'   => now()->startOfMonth()->toDateString(),
+                'end_date'     => now()->addMonths(3)->toDateString(),
+                'quota'        => 100,
+                'is_active'    => true,
+            ]
+        );
     }
 }

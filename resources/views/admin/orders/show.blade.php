@@ -87,30 +87,54 @@
                 @endif
             </div>
 
-            <!-- Form Ubah Status Transaksi -->
-            <form action="{{ route('admin.orders.update', $order->id) }}" method="POST" class="bg-gray-50 p-4 rounded-md flex items-center justify-between">
-                @csrf
-                @method('PUT')
-                <div>
-                    <label class="block font-bold text-gray-700">Ubah Status Pesanan:</label>
-                    <select name="status" class="border-gray-300 rounded-md shadow-sm mt-1">
-                        @foreach(\App\Models\Order::STATUS_LABELS as $value => $label)
-                            <option value="{{ $value }}" {{ $order->status == $value ? 'selected' : '' }}>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">Status "Dibatalkan" akan mengembalikan stok produk dan tidak bisa dibuka kembali.</p>
+            <!-- Form Ubah Status Transaksi (harus berurutan; pembatalan wajib beralasan) -->
+            @if($order->nextStatus() || $order->canBeCancelled())
+                <form action="{{ route('admin.orders.update', $order->id) }}" method="POST"
+                      x-data="{ status: '{{ old('status', $order->nextStatus() ?? $order->status) }}' }"
+                      class="bg-gray-50 p-4 rounded-md space-y-3">
+                    @csrf
+                    @method('PUT')
+                    <div class="flex items-end justify-between gap-4">
+                        <div>
+                            <label class="block font-bold text-gray-700">Ubah Status Pesanan:</label>
+                            <select name="status" x-model="status" class="border-gray-300 rounded-md shadow-sm mt-1">
+                                @foreach(\App\Models\Order::STATUS_LABELS as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}{{ $order->status === $value ? ' (saat ini)' : '' }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Status harus berurutan: Menunggu Pembayaran &rarr; Dibayar &rarr; Diproses &rarr; Siap Diambil / Dikirim &rarr; Selesai.
+                                @if($order->nextStatus())
+                                    Langkah berikutnya: <strong>{{ \App\Models\Order::STATUS_LABELS[$order->nextStatus()] }}</strong>.
+                                @endif
+                                Status "Dibatalkan" mengembalikan stok produk dan tidak bisa dibuka kembali.
+                            </p>
+                        </div>
+                        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-indigo-700">Update Status</button>
+                    </div>
+
+                    <div x-show="status === 'cancelled'" x-cloak>
+                        <label class="block font-bold text-gray-700">Alasan Pembatalan <span class="text-red-600">*</span></label>
+                        <textarea name="cancel_reason" rows="2" maxlength="255" class="w-full border-gray-300 rounded-md shadow-sm mt-1" placeholder="Wajib diisi bila membatalkan pesanan">{{ old('cancel_reason') }}</textarea>
+                    </div>
+                </form>
+            @else
+                <div class="bg-gray-50 p-4 rounded-md text-sm text-gray-600">
+                    Pesanan berstatus <strong>{{ \App\Models\Order::STATUS_LABELS[$order->status] }}</strong> dan tidak bisa diubah lagi.
                 </div>
-                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-indigo-700">Update Status</button>
-            </form>
+            @endif
 
             @if($order->statusLogs->isNotEmpty())
                 <div>
                     <h3 class="font-bold text-gray-700 mb-2">Riwayat Status</h3>
                     <ul class="text-sm text-gray-600 space-y-1">
-                        @foreach($order->statusLogs->sortByDesc('created_at') as $log)
+                        @foreach($order->statusLogs->sortByDesc('id') as $log)
                             <li>
                                 {{ \Illuminate\Support\Carbon::parse($log->created_at)->format('d/m/Y H:i') }}
                                 &mdash; {{ \App\Models\Order::STATUS_LABELS[$log->status] ?? $log->status }}
+                                @if($log->reason)
+                                    <span class="text-gray-500">(alasan: {{ $log->reason }})</span>
+                                @endif
                             </li>
                         @endforeach
                     </ul>

@@ -44,7 +44,7 @@ class OrderController extends Controller
                 ->with('error', 'Bukti pembayaran sudah dikirim dan sedang diverifikasi. Silakan hubungi toko untuk membatalkan.');
         }
 
-        $order->changeStatus('cancelled', auth()->id());
+        $order->changeStatus('cancelled', auth()->id(), 'Dibatalkan oleh pelanggan.');
 
         return redirect()->route('orders.show', $order->id)
             ->with('success', 'Pesanan berhasil dibatalkan.');

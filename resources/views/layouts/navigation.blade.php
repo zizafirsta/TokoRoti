@@ -19,8 +19,8 @@
                     <!-- Dashboard -->
                     @auth
                         <x-nav-link
-                            :href="route('dashboard')"
-                            :active="request()->routeIs('dashboard')"
+                            :href="auth()->user()->role === 'admin' ? route('admin.dashboard') : route('dashboard')"
+                            :active="request()->routeIs('dashboard') || request()->routeIs('admin.dashboard')"
                             wire:navigate
                         >
                             {{ __('Dashboard') }}
@@ -37,6 +37,7 @@
                     </x-nav-link>
 
                     @auth
+                        @if(auth()->user()->role !== 'admin')
                         <!-- Keranjang -->
                         <x-nav-link
                             :href="route('cart.index')"
@@ -60,6 +61,7 @@
                         >
                             {{ __('Pesanan Saya') }}
                         </x-nav-link>
+                        @endif
 
                         <!-- Menu Khusus Admin -->
                         @if(auth()->user()->role === 'admin')
@@ -79,6 +81,30 @@
                                 wire:navigate
                             >
                                 {{ __('Kelola Transaksi') }}
+                            </x-nav-link>
+
+                            <x-nav-link
+                                :href="route('admin.stock.index')"
+                                :active="request()->routeIs('admin.stock.*')"
+                                wire:navigate
+                            >
+                                {{ __('Kelola Stok') }}
+                            </x-nav-link>
+
+                            <x-nav-link
+                                :href="route('admin.promos.index')"
+                                :active="request()->routeIs('admin.promos.*')"
+                                wire:navigate
+                            >
+                                {{ __('Kelola Promo') }}
+                            </x-nav-link>
+
+                            <x-nav-link
+                                :href="route('admin.reports.sales')"
+                                :active="request()->routeIs('admin.reports.*')"
+                                wire:navigate
+                            >
+                                {{ __('Laporan Penjualan') }}
                             </x-nav-link>
                         @endif
                     @endauth
@@ -214,8 +240,8 @@
             <!-- Dashboard -->
             @auth
                 <x-responsive-nav-link
-                    :href="route('dashboard')"
-                    :active="request()->routeIs('dashboard')"
+                    :href="auth()->user()->role === 'admin' ? route('admin.dashboard') : route('dashboard')"
+                    :active="request()->routeIs('dashboard') || request()->routeIs('admin.dashboard')"
                     wire:navigate
                 >
                     {{ __('Dashboard') }}
@@ -232,6 +258,7 @@
             </x-responsive-nav-link>
 
             @auth
+                @if(auth()->user()->role !== 'admin')
                 <!-- Keranjang -->
                 <x-responsive-nav-link
                     :href="route('cart.index')"
@@ -255,6 +282,7 @@
                 >
                     {{ __('Pesanan Saya') }}
                 </x-responsive-nav-link>
+                @endif
 
                 <!-- Menu Admin -->
                 @if(auth()->user()->role === 'admin')
@@ -274,6 +302,30 @@
                         wire:navigate
                     >
                         {{ __('Kelola Transaksi') }}
+                    </x-responsive-nav-link>
+
+                    <x-responsive-nav-link
+                        :href="route('admin.stock.index')"
+                        :active="request()->routeIs('admin.stock.*')"
+                        wire:navigate
+                    >
+                        {{ __('Kelola Stok') }}
+                    </x-responsive-nav-link>
+
+                    <x-responsive-nav-link
+                        :href="route('admin.promos.index')"
+                        :active="request()->routeIs('admin.promos.*')"
+                        wire:navigate
+                    >
+                        {{ __('Kelola Promo') }}
+                    </x-responsive-nav-link>
+
+                    <x-responsive-nav-link
+                        :href="route('admin.reports.sales')"
+                        :active="request()->routeIs('admin.reports.*')"
+                        wire:navigate
+                    >
+                        {{ __('Laporan Penjualan') }}
                     </x-responsive-nav-link>
                 @endif
             @endauth

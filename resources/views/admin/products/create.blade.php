@@ -41,13 +41,18 @@
                     </div>
 
                     <div>
+                        <label class="block font-semibold">Batas Stok Minimum (peringatan stok menipis)</label>
+                        <input type="number" name="min_stock" value="{{ old('min_stock', 5) }}" min="0" step="1" class="w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+
+                    <div>
                         <label class="block font-semibold">Deskripsi</label>
-                        <textarea name="description" rows="3" class="w-full border-gray-300 rounded-md shadow-sm">{{ old('description') }}</textarea>
+                        <textarea name="description" rows="3" required class="w-full border-gray-300 rounded-md shadow-sm">{{ old('description') }}</textarea>
                     </div>
 
                     <div>
                         <label class="block font-semibold">Foto Roti</label>
-                        <input type="file" name="image" accept="image/*" class="w-full">
+                        <input type="file" name="image" accept="image/*" required class="w-full">
                     </div>
 
                     <label class="flex items-center space-x-2">

@@ -41,7 +41,12 @@
                                 <td class="p-3 border font-semibold">{{ $product->name }}</td>
                                 <td class="p-3 border">{{ $product->category->name }}</td>
                                 <td class="p-3 border">Rp {{ number_format($product->price, 0, ',', '.') }}</td>
-                                <td class="p-3 border">{{ $product->stock }} pcs</td>
+                                <td class="p-3 border">
+                                    {{ $product->stock }} pcs
+                                    @if($product->isLowStock())
+                                        <span class="ml-1 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">Menipis</span>
+                                    @endif
+                                </td>
                                 <td class="p-3 border">
                                     @if($product->is_active)
                                         <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">Aktif</span>
@@ -51,11 +56,22 @@
                                 </td>
                                 <td class="p-3 border text-center space-x-2">
                                     <a href="{{ route('admin.products.edit', $product->id) }}" class="text-blue-600 hover:underline">Edit</a>
-                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus roti ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:underline">Hapus</button>
-                                    </form>
+                                    @if($product->order_items_count === 0)
+                                        <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus roti ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:underline">Hapus</button>
+                                        </form>
+                                    @else
+                                        {{-- Produk sudah punya riwayat order: tidak boleh dihapus, hanya dinonaktifkan --}}
+                                        <form action="{{ route('admin.products.toggle-active', $product->id) }}" method="POST" class="inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="{{ $product->is_active ? 'text-red-600' : 'text-green-700' }} hover:underline" title="Produk ini sudah pernah dipesan sehingga tidak bisa dihapus">
+                                                {{ $product->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                            </button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

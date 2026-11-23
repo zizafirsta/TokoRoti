@@ -41,8 +41,13 @@
                     </div>
 
                     <div>
+                        <label class="block font-semibold">Batas Stok Minimum (peringatan stok menipis)</label>
+                        <input type="number" name="min_stock" value="{{ old('min_stock', $product->min_stock) }}" min="0" step="1" class="w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+
+                    <div>
                         <label class="block font-semibold">Deskripsi</label>
-                        <textarea name="description" rows="3" class="w-full border-gray-300 rounded-md shadow-sm">{{ old('description', $product->description) }}</textarea>
+                        <textarea name="description" rows="3" required class="w-full border-gray-300 rounded-md shadow-sm">{{ old('description', $product->description) }}</textarea>
                     </div>
 
                     <div>
